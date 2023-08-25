@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const app = express();
 
+let movies = [];
 
 const db = mysql.createConnection({
     host: 'localhost',
@@ -27,7 +28,7 @@ app.set('view engine', 'ejs');
 
 // Routes
 app.get('/', (req, res) => {
-    res.render('page1', { movies: [] });
+    res.render('page1', { movies });
 });
 
 app.post('/search', (req, res) => {
@@ -37,7 +38,7 @@ app.post('/search', (req, res) => {
 
     axios.get(`http://www.omdbapi.com/?s=${searchQuery}&apikey=${apiKey}`)
         .then(response => {
-            const movies = response.data.Search || [];
+            movies = response.data.Search || [];
             res.render('page1', { movies });
         })
         .catch(error => {
@@ -55,7 +56,11 @@ app.post('/favorite', (req, res) => {
             res.status(500).send('Error saving favorite.');
         } else {
             console.log('Favorite saved to database.');
-            res.redirect('/');
+            const referer = req.get('referer');
+            
+            
+                res.redirect('/');
+            
         }
     });
 });
