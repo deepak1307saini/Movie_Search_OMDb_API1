@@ -49,21 +49,38 @@ app.post('/search', (req, res) => {
 
 app.post('/favorite', (req, res) => {
     const { title, year, type, poster } = req.body;
-    const sql = 'INSERT INTO favorites (title, year, type, poster) VALUES (?, ?, ?, ?)';
-    db.query(sql, [title, year, type, poster], (err, result) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send('Error saving favorite.');
+
+    // Check if the movie is already in the favorites table based on title and year
+    const checkSql = 'SELECT COUNT(*) AS count FROM favorites WHERE title = ? AND year = ?';
+
+    db.query(checkSql, [title, year], (checkErr, checkResult) => {
+        if (checkErr) {
+            console.error(checkErr);
+            res.status(500).send('Error checking if the movie is already saved.');
         } else {
-            console.log('Favorite saved to database.');
-            const referer = req.get('referer');
-            
-            
-                res.redirect('/');
-            
+            const isMovieAlreadySaved = checkResult[0].count > 0;
+
+            if (isMovieAlreadySaved) {
+                // Movie is already in favorites, send a message
+                res.send('Movie is already saved in favorites.');
+            } else {
+                // Movie is not in favorites, insert it
+                const insertSql = 'INSERT INTO favorites (title, year, type, poster) VALUES (?, ?, ?, ?)';
+                
+                db.query(insertSql, [title, year, type, poster], (insertErr, result) => {
+                    if (insertErr) {
+                        console.error(insertErr);
+                        res.status(500).send('Error saving favorite.');
+                    } else {
+                        console.log('Favorite saved to database.');
+                        res.send('Movie saved to favorites.');
+                    }
+                });
+            }
         }
     });
 });
+
 
 
 app.get('/favorites', (req, res) => {
@@ -78,6 +95,22 @@ app.get('/favorites', (req, res) => {
     });
 });
 
+app.delete('/favorites/:id', (req, res) => {
+    const movieId = req.params.id;
+
+    // Assuming you have a 'favorites' table with a unique identifier 'id'
+    const sql = 'DELETE FROM favorites WHERE id = ?';
+
+    db.query(sql, [movieId], (err, result) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send('Error removing movie from favorites.');
+        } else {
+            console.log('Movie removed from favorites.');
+            res.sendStatus(204); // Send a 'No Content' response
+        }
+    });
+});
 
 
 // Start the server
